@@ -23,6 +23,7 @@ export interface SanityEventSummary {
 	subtitle?: string;
 	registrationLink?: string;
 	formSlug?: string;
+	orderNum?: number;
 	coverImage?: SanityImage;
 }
 
