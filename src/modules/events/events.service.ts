@@ -5,10 +5,10 @@ import type { SanityEvent, SanityEventSummary } from "./events.types.js";
 const eventsService = {
   getEvents: async (): Promise<SanityEventSummary[]> => {
     return sanityClient.fetch(`
-      *[_type == "event"] | order(startDate desc) {
+      *[_type == "event"] | order(coalesce(orderNum, 999999) asc, startDate desc) {
         _id, title, slug, location, subtitle,
         startDate, endDate, startDateSecondV, endDateSecondV,
-        registrationLink, formSlug, coverImage { asset -> { url } }
+        registrationLink, formSlug, orderNum, coverImage { asset -> { url } }
       }`);
   },
 
@@ -19,7 +19,7 @@ const eventsService = {
         speakers[] { name, title, photo { asset -> { url } } },
         memories[] { photo { asset -> { url } } },
         startDate, endDate, startDateSecondV, endDateSecondV,
-        registrationLink, formSlug, coverImage { asset -> { url } }
+        registrationLink, formSlug, orderNum, coverImage { asset -> { url } }
       }`,
       { id },
     );

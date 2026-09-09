@@ -36,6 +36,7 @@ export const sanityEventSummarySchema = z
       .string()
       .optional()
       .openapi({ example: "ieee-spring-2026" }),
+    orderNum: z.number().optional().openapi({ example: 1 }),
     coverImage: sanityImageSchema.optional(),
   })
   .openapi("SanityEventSummary");
