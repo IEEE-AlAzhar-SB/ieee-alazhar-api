@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { registry } from "../../util/registry.js";
-import { eventIdSchema, sanityEventSchema, sanityEventSummarySchema } from "./events.schema.js";
+import { eventIdSchema, eventSlugSchema, sanityEventSchema, sanityEventSummarySchema } from "./events.schema.js";
 
 registry.registerPath({
 	method: "get",
@@ -42,6 +42,31 @@ registry.registerPath({
 			},
 		},
 		400: { description: "Bad request due to invalid event ID (must be UUID)" },
+		404: { description: "Event not found" },
+		500: { description: "Internal server error" },
+	},
+});
+
+registry.registerPath({
+	method: "get",
+	path: "/api/v1/events/slug/{slug}",
+	tags: ["Events"],
+	summary: "Get single event from Sanity by slug",
+	request: {
+		params: eventSlugSchema,
+	},
+	responses: {
+		200: {
+			description: "Successful response with single event details",
+			content: {
+				"application/json": {
+					schema: z.object({
+						data: sanityEventSchema,
+					}),
+				},
+			},
+		},
+		400: { description: "Bad request due to invalid event slug" },
 		404: { description: "Event not found" },
 		500: { description: "Internal server error" },
 	},

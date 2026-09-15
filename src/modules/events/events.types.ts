@@ -1,5 +1,12 @@
 import type { SanityImage } from '../../types/SanitySharedTypes.js';
 
+export type EventLocation = 'online' | 'offline' | 'hybrid';
+
+export interface VenueDetails {
+	mapLink?: string;
+	note?: string;
+}
+
 interface Speaker {
 	name: string;
 	title: string;
@@ -19,7 +26,8 @@ export interface SanityEventSummary {
   endDate: string;
   startDateSecondV?: string;
   endDateSecondV?: string;
-	location?: string;
+	location?: EventLocation;
+	venueDetails?: VenueDetails | null;
 	subtitle?: string;
 	registrationLink?: string;
 	formSlug?: string;

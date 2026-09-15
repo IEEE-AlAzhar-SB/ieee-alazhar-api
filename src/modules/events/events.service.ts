@@ -6,7 +6,7 @@ const eventsService = {
   getEvents: async (): Promise<SanityEventSummary[]> => {
     return sanityClient.fetch(`
       *[_type == "event"] | order(coalesce(orderNum, 999999) asc, startDate desc) {
-        _id, title, slug, location, subtitle,
+        _id, title, slug, location, venueDetails{mapLink, note}, subtitle,
         startDate, endDate, startDateSecondV, endDateSecondV,
         registrationLink, formSlug, orderNum, coverImage { asset -> { url } }
       }`);
@@ -15,13 +15,29 @@ const eventsService = {
   getEventById: async (id: string): Promise<SanityEvent> => {
     const event: SanityEvent | null = await sanityClient.fetch(
       `*[_type == "event" && _id == $id][0] {
-        _id, title, slug, location, subtitle,
+        _id, title, slug, location, venueDetails{mapLink, note}, subtitle,
         speakers[] { name, title, photo { asset -> { url } } },
         memories[] { photo { asset -> { url } } },
         startDate, endDate, startDateSecondV, endDateSecondV,
         registrationLink, formSlug, orderNum, coverImage { asset -> { url } }
       }`,
       { id },
+    );
+
+    if (!event) throw new NotFoundError("Event not found");
+    return event;
+  },
+
+  getEventBySlug: async (slug: string): Promise<SanityEvent> => {
+    const event: SanityEvent | null = await sanityClient.fetch(
+      `*[_type == "event" && slug.current == $slug][0] {
+        _id, title, slug, location, venueDetails{mapLink, note}, subtitle,
+        speakers[] { name, title, photo { asset -> { url } } },
+        memories[] { photo { asset -> { url } } },
+        startDate, endDate, startDateSecondV, endDateSecondV,
+        registrationLink, formSlug, orderNum, coverImage { asset -> { url } }
+      }`,
+      { slug },
     );
 
     if (!event) throw new NotFoundError("Event not found");
