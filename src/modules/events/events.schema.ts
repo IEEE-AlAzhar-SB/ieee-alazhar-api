@@ -14,6 +14,17 @@ const speakerSchema = z
   })
   .openapi("Speaker");
 
+const venueDetailsSchema = z
+  .object({
+    mapLink: z.url().optional().openapi({
+      example: "https://maps.google.com/?q=Faculty+of+Engineering",
+    }),
+    note: z.string().max(255).optional().openapi({
+      example: "Enter from Gate 3, Room B201",
+    }),
+  })
+  .openapi("VenueDetails");
+
 export const sanityEventSummarySchema = z
   .object({
     _id: z.uuid().openapi({ example: "189bc292-e41b-42a0-91b5-bfaa33a34af2" }),
@@ -23,7 +34,14 @@ export const sanityEventSummarySchema = z
     }),
     startDate: z.string().openapi({ example: "2026-07-05T10:00:00Z" }),
     endDate: z.string().openapi({ example: "2026-07-05T12:00:00Z" }),
-    location: z.string().optional().openapi({ example: "Hall B" }),
+    location: z
+      .enum(["online", "offline", "hybrid"])
+      .optional()
+      .openapi({ example: "offline" }),
+    venueDetails: venueDetailsSchema
+      .optional()
+      .nullable()
+      .openapi({ description: "Physical venue details (offline/hybrid events only)" }),
     subtitle: z
       .string()
       .optional()
@@ -59,3 +77,16 @@ export const eventIdSchema = z.object({
 });
 
 export type EventId = z.infer<typeof eventIdSchema>;
+
+/**
+ * Validates the :slug path parameter for GET /events/slug/:slug.
+ * Matches Sanity `slug.current` (kebab-case, e.g. "intro-to-robotics").
+ */
+export const eventSlugSchema = z.object({
+  slug: z.string().min(1, "Slug is required").max(200).openapi({
+    description: "Sanity event slug (slug.current)",
+    example: "intro-to-robotics",
+  }),
+});
+
+export type EventSlug = z.infer<typeof eventSlugSchema>;

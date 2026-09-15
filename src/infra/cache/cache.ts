@@ -40,6 +40,9 @@ export const CACHE_KEYS = {
   // GET /events/:id
   eventById: (id: string) => `events:id:${id}`,
 
+  // GET /events/slug/:slug
+  eventBySlug: (slug: string) => `events:slug:${slug}`,
+
   // GET /home
   homeData: () => `home:data`,
   homePattern: () => `home:*`,
@@ -62,6 +65,7 @@ export const TTL = {
   COMMITTEES_LIST: 60 * 60 * 24, // webhook handles invalidation now
   EVENTS_LIST: 60 * 60 * 24, // webhook handles invalidation now
   EVENT_BY_ID: 60 * 60 * 24, // webhook handles invalidation now
+  EVENT_BY_SLUG: 60 * 60 * 24, // webhook handles invalidation now
   HOME_DATA: 60 * 60 * 24, // webhook handles invalidation now
   // Public form definition. Mutations invalidate immediately via FORM_UPDATED;
   // submissions do NOT invalidate, so 300s bounds capacity staleness

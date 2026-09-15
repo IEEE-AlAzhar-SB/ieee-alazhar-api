@@ -3,7 +3,7 @@ import { Router, type Request, type Response } from "express";
 import asyncHandler from "../../util/async.handler.js";
 import { validate } from "../../middlewares/validate.js";
 import { getCachedData, CACHE_KEYS, TTL } from "../../infra/cache/cache.js";
-import { eventIdSchema, type EventId } from "./events.schema.js";
+import { eventIdSchema, eventSlugSchema, type EventId, type EventSlug } from "./events.schema.js";
 import type { TypedRequest } from "../../types/TypedRequest.js";
 import eventsService from "./events.service.js";
 import { httpCache } from "../../middlewares/http.caching.js";
@@ -18,6 +18,23 @@ router.get(
       CACHE_KEYS.eventsList(),
       () => eventsService.getEvents(),
       TTL.EVENTS_LIST,
+    );
+
+    return res.json({ data: result });
+  }),
+);
+
+router.get(
+  "/slug/:slug",
+  validate(eventSlugSchema, "params"),
+  httpCache({ strategy: "public" }),
+  asyncHandler(async (req: TypedRequest<unknown, EventSlug>, res: Response) => {
+    const { slug } = req.validatedParams!;
+
+    const result = await getCachedData(
+      CACHE_KEYS.eventBySlug(slug),
+      () => eventsService.getEventBySlug(slug),
+      TTL.EVENT_BY_SLUG,
     );
 
     return res.json({ data: result });
