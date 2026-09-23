@@ -61,6 +61,7 @@ export const OPERATION_TRACKS = [
   "logistic",
   "hr",
   "operation management",
+  "financial accounting",
 ] as const;
 
 export const ALL_TRACKS = [

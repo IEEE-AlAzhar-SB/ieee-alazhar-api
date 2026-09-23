@@ -1,6 +1,9 @@
 import { z } from "zod";
+
 import type { IFieldDefinition } from "./form.types.js";
 import { FIELD_TYPES } from "./form.types.js";
+import { BOARD_TYPES } from "../../board/board.types.js";
+
 
 // -----------------------------------------------------------------------
 // Reusable sub-schemas
@@ -434,7 +437,7 @@ function buildFieldZodSchema(field: IFieldDefinition): z.ZodTypeAny {
           : z.string({ error: em.required ?? "Please select a role" });
 
       const entrySchema = z.object({
-        section: z.enum(["officer", "technical", "branding", "operation"], {
+        section: z.enum(BOARD_TYPES, {
           error: "Section must be officer, technical, branding, or operation",
         }),
         committee: z.string().min(1, "Committee is required"),
