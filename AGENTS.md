@@ -9,7 +9,7 @@
 | `npm run typecheck` | Type-check only (`tsc --noEmit`)       |
 | `npm start`         | Run compiled app from `dist/server.js` |
 
-No lint, test, or formatter scripts exist. `npm run typecheck` is the only local verification. CI (`.github/workflows/ci.yml`) runs `npm audit --audit-level=high`, `npm ci`, and `npm run typecheck` on push/PR to `master`. CD (`.github/workflows/cd.yml`) deploys to Vercel on push to `master` (uses `vercel build --prod` + `vercel deploy --prebuilt --prod`). CI uses Node 24.x.
+No lint, test, or formatter scripts exist. `npm run typecheck` is the only local verification. CI (`.github/workflows/ci.yml`) runs `npm audit --audit-level=high`, `npm ci`, `npm run typecheck`, and `npm test --if-present` (no-op today) on push/PR to `master`. CD (`.github/workflows/cd.yml`) deploys to Vercel on push to `master` (uses `vercel build --prod` + `vercel deploy --prebuilt --prod`). CI uses Node 24.x.
 
 ## Architecture
 
@@ -59,6 +59,8 @@ Protected routes prepend: `isAuthenticated` → `isAdmin` → `upload.single("av
 - **CORS**: the cross-origin allowlist is hardcoded in `middlewares/corsMiddleware.ts` (not env-driven). Same-origin requests are also allowed (host comparison) so the Scalar docs UI on the API's own host works.
 - **No test suite**: There are no test scripts, test files, or test dependencies. `npm run typecheck` is the only static verification.
 - **Vercel deployment**: `bootstrap()` only calls `app.listen()` in non-production. Do not add startup logic that assumes a persistent process in production.
+- **`src/server.ts` has import-time side effects**: top-level `await connectDb()` and `await generateOpenAPIDocument()` run on import (this is also how Vercel cold starts connect to Mongo). Don't import `server.ts` from scripts or utilities expecting a side-effect-free app.
+- **`scripts/` is outside tsconfig `rootDir`**: `npm run build` never compiles `scripts/*.ts`; run them directly with `npx tsx`.
 
 ## OpenAPI Docs
 
@@ -73,3 +75,7 @@ Validated in `src/config/env.ts` via Zod (`config()` loads `.env`). Required: `M
 ## Scripts
 
 - `scripts/seed.admin.ts` — one-shot admin user creation. Run with `npx tsx scripts/seed.admin.ts`.
+
+## OpenCode
+
+`opencode.json` registers two remote MCP servers: `better-auth` (docs search) and `sanity` (OAuth). Use them for Better Auth and Sanity questions instead of guessing APIs.
