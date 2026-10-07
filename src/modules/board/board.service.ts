@@ -18,7 +18,7 @@ import type {
 	UpdateBoardMember,
 } from "./board.schema.js";
 import UploadService from "../upload/upload.service.js";
-import { AppError, NotFoundError } from "../../errors/app.error.js";
+import { NotFoundError } from "../../errors/app.error.js";
 import { toMemberDTO } from "./board.dto.js";
 
 type TechnicalGroupResult = Record<TechnicalTrackGroup, BoardMember[]>;
@@ -117,24 +117,23 @@ const boardService = {
 		memberAvatar?: Express.Multer.File,
 	) => {
 		const board = new Board(member);
+		let uploadedPublicId: string | undefined;
 		if (memberAvatar) {
 			const result = await UploadService.uploadImage(
 				memberAvatar.buffer,
 				"board/avatars",
 			);
+			uploadedPublicId = result.public_id;
 			board.avatar = { url: result.secure_url, public_id: result.public_id };
 		}
 		try {
-			const newMember = await board.save().catch((err) => {
-				console.error({ event: "board.save.failed", err });
-				throw new AppError("Failed to save board member", 500);
-			});
+			const newMember = await board.save();
 			return toMemberDTO(newMember);
-		} catch {
-			if (memberAvatar && board.avatar?.public_id) {
-				await UploadService.deleteImage(board.avatar.public_id);
+		} catch (err) {
+			if (uploadedPublicId) {
+				await UploadService.deleteImage(uploadedPublicId).catch(console.error);
 			}
-			throw new AppError("Failed to save board member", 500);
+			throw err;
 		}
 	},
 
@@ -146,29 +145,33 @@ const boardService = {
 		const board = await Board.findById(boardId);
 		if (!board) throw new NotFoundError("Board not found");
 
+		const oldPublicId = board.avatar?.public_id;
+		let uploadedPublicId: string | undefined;
+
 		if (boardAvatar) {
-			if (board.avatar?.public_id) {
-				UploadService.deleteImage(board.avatar.public_id).catch((err) => {
-					console.error("Failed to delete avatar image:", err);
-				});
-			}
 			const result = await UploadService.uploadImage(
 				boardAvatar.buffer,
 				"board/avatars",
 			);
+			uploadedPublicId = result.public_id;
 			board.avatar = { url: result.secure_url, public_id: result.public_id };
 		}
+
 		Object.assign(board, boardData);
+
 		try {
-			const updatedBoard = await board.save();
-			return toMemberDTO(updatedBoard);
-		} catch {
-			if (board.avatar?.public_id) {
-				UploadService.deleteImage(board.avatar.public_id).catch((err) => {
-					console.error("Failed to delete avatar image:", err);
-				});
+			const updated = await board.save();
+			// only now is it safe to remove the old image
+			if (uploadedPublicId && oldPublicId) {
+				UploadService.deleteImage(oldPublicId).catch(console.error);
 			}
-			throw new AppError("Failed to update board member", 500);
+			return toMemberDTO(updated);
+		} catch (err) {
+			// roll back only what THIS request uploaded
+			if (uploadedPublicId) {
+				await UploadService.deleteImage(uploadedPublicId).catch(console.error);
+			}
+			throw err; // keep ValidationError / ConflictError mapping
 		}
 	},
 
@@ -192,11 +195,7 @@ const boardService = {
 			.exec();
 		if (!board) throw new NotFoundError("Board not found");
 
-		if (board?.avatar?.public_id) {
-			UploadService.deleteImage(board.avatar.public_id).catch((err) => {
-				console.error("Failed to delete avatar image:", err);
-			});
-		}
+		const oldPublicId = board.avatar?.public_id;
 		const result = await UploadService.uploadImage(
 			file.buffer,
 			"board/avatars",
@@ -204,18 +203,14 @@ const boardService = {
 		board.avatar = { url: result.secure_url, public_id: result.public_id };
 
 		try {
-			const savedMember = await board.save().catch((err) => {
-				console.error({ event: "board.avatar.save.failed", err });
-				throw new AppError("Failed to save board member", 500);
-			});
-			return toMemberDTO(savedMember);
-		} catch {
-			try {
-				await UploadService.deleteImage(result.public_id);
-			} catch (cleanupErr) {
-				throw new AppError(`Board save failed AND cleanup failed`, 500);
+			const savedMember = await board.save();
+			if (oldPublicId) {
+				UploadService.deleteImage(oldPublicId).catch(console.error);
 			}
-			throw new AppError("Failed to save board avatar", 500);
+			return toMemberDTO(savedMember);
+		} catch (err) {
+			await UploadService.deleteImage(result.public_id).catch(console.error);
+			throw err;
 		}
 	},
 
@@ -225,14 +220,17 @@ const boardService = {
 			.exec();
 		if (!board) throw new NotFoundError("Board not found");
 
-		if (board?.avatar?.public_id) {
-			await UploadService.deleteImage(board.avatar.public_id).catch((err) => {
-				console.error("Failed to delete avatar image:", err);
-			});
+		const oldPublicId = board.avatar?.public_id;
+		if (oldPublicId) {
 			board.avatar = { url: "", public_id: "" };
 		}
 
 		const savedBoard = await board.save();
+		if (oldPublicId) {
+			await UploadService.deleteImage(oldPublicId).catch((err) => {
+				console.error("Failed to delete avatar image:", err);
+			});
+		}
 		return toMemberDTO(savedBoard);
 	},
 };
